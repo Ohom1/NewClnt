@@ -1,0 +1,419 @@
+@extends('admin.layouts.app')
+
+@section('title', 'Lead Details')
+
+@section('content')
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+            <a href="{{ route('admin.leads.index') }}" class="flex items-center text-primary-blue hover:text-secondary-green">
+                <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+                Back to Leads
+            </a>
+            <div class="flex space-x-2">
+                <a href="{{ route('admin.leads.edit', $lead) }}" class="btn-secondary">
+                    <i data-lucide="pencil" class="w-4 h-4 mr-2"></i>
+                    Edit
+                </a>
+                <button type="button" class="btn-primary bg-red-500 hover:bg-red-600" onclick="confirmDelete()">
+                    <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                    Delete
+                </button>
+                <form id="delete-form" action="{{ route('admin.leads.destroy', $lead) }}" method="POST" style="display: none;">
+                    @csrf
+                    @method('DELETE')
+                </form>
+            </div>
+        </div>
+        <h1 class="text-3xl font-bold text-primary-blue">{{ $lead->name }}</h1>
+        <p class="text-gray-500">{{ $lead->email }} | {{ $lead->phone }}</p>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column (Lead Details) -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Basic Information -->
+            <div class="bg-white rounded-card shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-primary-blue">Lead Information</h2>
+                    <div class="flex space-x-2">
+                        <span class="text-sm text-gray-500">Created: {{ $lead->created_at->format('M d, Y H:i') }}</span>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Full Name</h3>
+                        <p>{{ $lead->name }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Company</h3>
+                        <p>{{ $lead->company ?? 'Not provided' }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Email</h3>
+                        <p>{{ $lead->email }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Phone</h3>
+                        <p>{{ $lead->phone }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Origin</h3>
+                        <p>{{ $lead->origin }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Destination</h3>
+                        <p>{{ $lead->destination }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Cargo Type</h3>
+                        <p>{{ ucfirst($lead->cargo_type) }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Shipping Mode</h3>
+                        <p>{{ $lead->shipping_mode ? ucfirst(str_replace('_', ' ', $lead->shipping_mode)) : 'Not specified' }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Container Size</h3>
+                        <p>{{ $lead->container_size ? ucfirst(str_replace('_', ' ', $lead->container_size)) : 'Not specified' }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Weight</h3>
+                        <p>{{ $lead->weight ?? 'Not specified' }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Dimensions</h3>
+                        <p>{{ $lead->dimensions ?? 'Not specified' }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Shipping Date</h3>
+                        <p>{{ $lead->shipping_date ? $lead->shipping_date->format('M d, Y') : 'Not specified' }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Source</h3>
+                        <p>{{ ucfirst($lead->source) }}</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500">Lead Value</h3>
+                        <p>{{ $lead->quoted_amount ? $lead->currency . ' ' . number_format($lead->quoted_amount, 2) : 'Not quoted yet' }}</p>
+                    </div>
+                    
+                    @if ($lead->message)
+                    <div class="md:col-span-2">
+                        <h3 class="text-sm font-medium text-gray-500">Additional Information</h3>
+                        <p class="whitespace-pre-line">{{ $lead->message }}</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            
+            <!-- Activity Timeline -->
+            <div class="bg-white rounded-card shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-primary-blue">Activity Timeline</h2>
+                    <a href="{{ route('admin.leads.timeline', $lead) }}" class="text-secondary-green hover:text-primary-blue flex items-center">
+                        View Full Timeline
+                        <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                    </a>
+                </div>
+                
+                <div class="space-y-6">
+                    @forelse($lead->activities()->latest()->take(5)->get() as $activity)
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-center w-8 h-8 rounded-full {{ $activity->icon_color }} bg-opacity-20">
+                                <i data-lucide="{{ $activity->icon }}" class="w-5 h-5 {{ $activity->icon_color }}"></i>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm text-gray-500">{!! $activity->formatted_message !!}</p>
+                                <span class="text-xs text-gray-400">{{ $activity->created_at->diffForHumans() }}</span>
+                            </div>
+                            @if($activity->type == 'note' || $activity->type == 'email' || $activity->type == 'whatsapp')
+                                <div class="mt-2 bg-gray-50 p-3 rounded-md text-sm text-gray-700">
+                                    @if($activity->type == 'email' && $activity->email_subject)
+                                        <p class="font-medium mb-1">Subject: {{ $activity->email_subject }}</p>
+                                    @endif
+                                    <p class="whitespace-pre-line">{{ $activity->content }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                    @empty
+                    <div class="text-center py-4 text-gray-500">
+                        No activity recorded yet.
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+            
+            <!-- Communication Tools -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Email -->
+                <div class="bg-white rounded-card shadow-sm p-6">
+                    <h2 class="text-lg font-bold text-primary-blue mb-4">Send Email</h2>
+                    
+                    <form action="{{ route('admin.leads.email', $lead) }}" method="POST">
+                        @csrf
+                        
+                        <div class="mb-4">
+                            <label for="email_template" class="block text-sm font-medium text-gray-700 mb-1">Template</label>
+                            <select id="email_template" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-green focus:ring focus:ring-secondary-green focus:ring-opacity-50">
+                                <option value="">Select Template</option>
+                                @foreach($emailTemplates as $template)
+                                    <option value="{{ $template->id }}">{{ $template->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email_subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                            <input type="text" name="email_subject" id="email_subject" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-green focus:ring focus:ring-secondary-green focus:ring-opacity-50" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email_content" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                            <textarea name="email_content" id="email_content" rows="5" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-green focus:ring focus:ring-secondary-green focus:ring-opacity-50" required></textarea>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="submit" class="btn-primary bg-primary-blue">
+                                <i data-lucide="send" class="w-4 h-4 mr-2"></i>
+                                Send Email
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- WhatsApp -->
+                <div class="bg-white rounded-card shadow-sm p-6">
+                    <h2 class="text-lg font-bold text-primary-blue mb-4">Send WhatsApp</h2>
+                    
+                    <form action="{{ route('admin.leads.whatsapp', $lead) }}" method="POST">
+                        @csrf
+                        
+                        <div class="mb-4">
+                            <label for="whatsapp_template" class="block text-sm font-medium text-gray-700 mb-1">Template</label>
+                            <select id="whatsapp_template" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-green focus:ring focus:ring-secondary-green focus:ring-opacity-50">
+                                <option value="">Select Template</option>
+                                @foreach($whatsappTemplates as $template)
+                                    <option value="{{ $template->id }}">{{ $template->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="whatsapp_content" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                            <textarea name="whatsapp_content" id="whatsapp_content" rows="5" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-green focus:ring focus:ring-secondary-green focus:ring-opacity-50" required></textarea>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="submit" class="btn-primary bg-green-500 hover:bg-green-600">
+                                <i data-lucide="message-circle" class="w-4 h-4 mr-2"></i>
+                                Send WhatsApp
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column (Actions and Notes) -->
+        <div class="space-y-6">
+            <!-- Status and Assignment -->
+            <div class="bg-white rounded-card shadow-sm p-6">
+                <h2 class="text-lg font-bold text-primary-blue mb-4">Lead Status</h2>
+                
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">Current Status</h3>
+                    <div class="flex items-center">
+                        <div class="px-3 py-1 rounded-full text-base font-semibold 
+                            {{ $lead->status == 'new' ? 'bg-blue-100 text-blue-800' : '' }}
+                            {{ $lead->status == 'contacted' ? 'bg-purple-100 text-purple-800' : '' }}
+                            {{ $lead->status == 'quoted' ? 'bg-yellow-100 text-yellow-800' : '' }}
+                            {{ $lead->status == 'negotiating' ? 'bg-indigo-100 text-indigo-800' : '' }}
+                            {{ $lead->status == 'won' ? 'bg-green-100 text-green-800' : '' }}
+                            {{ $lead->status == 'lost' ? 'bg-red-100 text-red-800' : '' }}
+                            {{ $lead->status == 'cancelled' ? 'bg-gray-100 text-gray-800' : '' }}
+                        ">
+                            {{ ucfirst($lead->status) }}
+                        </div>
+                    </div>
+                </div>
+                
+                <form action="{{ route('admin.leads.status', $lead) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Update Status</label>
+                        <select name="status" id="status" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-green focus:ring focus:ring-secondary-green focus:ring-opacity-50">
+                            <option value="new" {{ $lead->status == 'new' ? 'selected' : '' }}>New</option>
+                            <option value="contacted" {{ $lead->status == 'contacted' ? 'selected' : '' }}>Contacted</option>
+                            <option value="quoted" {{ $lead->status == 'quoted' ? 'selected' : '' }}>Quoted</option>
+                            <option value="negotiating" {{ $lead->status == 'negotiating' ? 'selected' : '' }}>Negotiating</option>
+                            <option value="won" {{ $lead->status == 'won' ? 'selected' : '' }}>Won</option>
+                            <option value="lost" {{ $lead->status == 'lost' ? 'selected' : '' }}>Lost</option>
+                            <option value="cancelled" {{ $lead->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="w-full btn-secondary">
+                        Update Status
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Assignment -->
+            <div class="bg-white rounded-card shadow-sm p-6">
+                <h2 class="text-lg font-bold text-primary-blue mb-4">Assignment</h2>
+                
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">Currently Assigned To</h3>
+                    @if($lead->assignedUser)
+                        <div class="flex items-center">
+                            <img src="{{ $lead->assignedUser->profile_photo_url }}" alt="{{ $lead->assignedUser->name }}" class="h-10 w-10 rounded-full object-cover mr-3">
+                            <div>
+                                <p class="text-base font-medium">{{ $lead->assignedUser->name }}</p>
+                                <p class="text-sm text-gray-500">{{ $lead->assignedUser->email }}</p>
+                            </div>
+                        </div>
+                    @else
+                        <div class="text-gray-500">Not assigned</div>
+                    @endif
+                </div>
+                
+                <form action="{{ route('admin.leads.assign', $lead) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
+                        <select name="user_id" id="user_id" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-green focus:ring focus:ring-secondary-green focus:ring-opacity-50">
+                            @foreach($users as $user)
+                                <option value="{{ $user->id }}" {{ $lead->assigned_to == $user->id ? 'selected' : '' }}>
+                                    {{ $user->name }} ({{ ucfirst($user->role) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="w-full btn-secondary">
+                        Update Assignment
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Add Note -->
+            <div class="bg-white rounded-card shadow-sm p-6">
+                <h2 class="text-lg font-bold text-primary-blue mb-4">Add Note</h2>
+                
+                <form action="{{ route('admin.leads.note', $lead) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <textarea name="note_content" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-secondary-green focus:ring focus:ring-secondary-green focus:ring-opacity-50" placeholder="Enter your note here..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="w-full btn-primary bg-primary-blue">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                        Add Note
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Email template selector
+        const emailTemplateSelect = document.getElementById('email_template');
+        const emailSubjectInput = document.getElementById('email_subject');
+        const emailContentInput = document.getElementById('email_content');
+        
+        const emailTemplates = @json($emailTemplates);
+        
+        if (emailTemplateSelect) {
+            emailTemplateSelect.addEventListener('change', function() {
+                const templateId = this.value;
+                if (!templateId) return;
+                
+                const template = emailTemplates.find(t => t.id == templateId);
+                if (template) {
+                    // Replace placeholders in template with lead data
+                    let subject = template.subject;
+                    let body = template.body;
+                    
+                    const leadData = @json([
+                        'name' => $lead->name,
+                        'email' => $lead->email,
+                        'phone' => $lead->phone,
+                        'company' => $lead->company,
+                        'origin' => $lead->origin,
+                        'destination' => $lead->destination,
+                    ]);
+                    
+                    for (const [key, value] of Object.entries(leadData)) {
+                        subject = subject.replace(new RegExp('{{' + key + '}}', 'g'), value || '');
+                        body = body.replace(new RegExp('{{' + key + '}}', 'g'), value || '');
+                    }
+                    
+                    emailSubjectInput.value = subject;
+                    emailContentInput.value = body;
+                }
+            });
+        }
+        
+        // WhatsApp template selector
+        const whatsappTemplateSelect = document.getElementById('whatsapp_template');
+        const whatsappContentInput = document.getElementById('whatsapp_content');
+        
+        const whatsappTemplates = @json($whatsappTemplates);
+        
+        if (whatsappTemplateSelect) {
+            whatsappTemplateSelect.addEventListener('change', function() {
+                const templateId = this.value;
+                if (!templateId) return;
+                
+                const template = whatsappTemplates.find(t => t.id == templateId);
+                if (template) {
+                    // Replace placeholders in template with lead data
+                    let content = template.content;
+                    
+                    const leadData = @json([
+                        'name' => $lead->name,
+                        'phone' => $lead->phone,
+                        'origin' => $lead->origin,
+                        'destination' => $lead->destination,
+                    ]);
+                    
+                    for (const [key, value] of Object.entries(leadData)) {
+                        content = content.replace(new RegExp('{{' + key + '}}', 'g'), value || '');
+                    }
+                    
+                    whatsappContentInput.value = content;
+                }
+            });
+        }
+    });
+    
+    function confirmDelete() {
+        if (confirm('Are you sure you want to delete this lead? This action cannot be undone.')) {
+            document.getElementById('delete-form').submit();
+        }
+    }
+</script>
+@endpush
